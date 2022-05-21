@@ -1,35 +1,27 @@
-const fs = require('fs');
 const promises = require('fs/promises');
 const path = require('path');
-let template = '';
 
 // create project-dist folder
 promises.mkdir(path.join(__dirname, 'project-dist'), {recursive: true});
 
-// copy assets folder to project-dist
-fs.readdir(path.join(__dirname, 'assets'), {withFileTypes: true}, function(err, folders) {
-  if (err) {
-    throw err;
+async function copyFiles(folder) {
+  const assetFolders = await promises.readdir(path.join(__dirname, folder));
+  for (let i = 0; i < assetFolders.length; i++) {
+    await promises.mkdir(path.join(__dirname, 'project-dist', folder, assetFolders[i]), {recursive: true});
+    const assetFiles = await promises.readdir(path.join(__dirname, folder, assetFolders[i]));
+    for (let j = 0; j < assetFiles.length; j++) {
+      promises.copyFile(path.join(__dirname, folder, assetFolders[i], assetFiles[j]), 
+        path.join(__dirname, 'project-dist', folder, assetFolders[i], assetFiles[j]));
+    }
   }
-  for (let i = 0; i < folders.length; i++) {
-    promises.mkdir(path.join(__dirname, 'project-dist', 'assets', folders[i].name), {recursive: true}).then(() => {
-      fs.readdir(path.join(__dirname, 'assets', folders[i].name), {withFileTypes: true}, function(err, files) {
-        if (err) {
-          throw err;
-        }
-        for (let j = 0; j < files.length; j++) {
-          promises.copyFile(path.join(__dirname, 'assets', folders[i].name, files[j].name), 
-            path.join(__dirname, 'project-dist', 'assets', folders[i].name, files[j].name));
-        }
-      });
-    });
-  }
-});
+}
 
-// combine index.html file and save it to project-dist
-promises.readFile(
-  path.join(__dirname, 'template.html')).then(data => {
-  template = data.toString();
+// copy assets folder to project-dist
+copyFiles('assets');
+     
+async function buildIndexHTML() {
+  let template = await promises.readFile(path.join(__dirname, 'template.html'));
+  template = template.toString();
   let regexp = /{{[a-z]{1,}}}/g;
   const vars = template.match(regexp);
   let readFiles = [];
@@ -43,7 +35,7 @@ promises.readFile(
       template = template.replace(vars[i], data[i]);
     }
   }).then(() => {
-    fs.writeFile(
+    promises.writeFile(
       path.join(__dirname, 'project-dist', 'index.html'),
       template,
       (err) => {
@@ -53,22 +45,22 @@ promises.readFile(
       }
     );
   });
-});
+}
 
-// combine css files and save css file to project-dist
-fs.readdir(path.join(__dirname, 'styles'), {withFileTypes: true}, function(err, items) {
-  if (err) {
-    throw err;
-  }
+// combine index.html file and save it to project-dist
+buildIndexHTML();
+
+async function buildCss(folder) {
+  const cssFiles = await promises.readdir(path.join(__dirname, folder)); 
   let readFiles = [];
-  for (let i = 0; i < items.length; i++) {
-    if (items[i].isFile() && path.extname(items[i].name) === '.css') {
-      readFiles.push(promises.readFile( path.join(__dirname, 'styles', items[i].name))
+  for (let i = 0; i < cssFiles.length; i++) {
+    if (path.extname(cssFiles[i]) === '.css') {
+      readFiles.push(promises.readFile( path.join(__dirname, 'styles', cssFiles[i]))
         .then(data => data.toString()));
     }
   }
   Promise.all(readFiles).then(data => {
-    fs.writeFile(
+    promises.writeFile(
       path.join(__dirname, 'project-dist', 'style.css'),
       data.join('\n'),
       (err) => {
@@ -78,4 +70,7 @@ fs.readdir(path.join(__dirname, 'styles'), {withFileTypes: true}, function(err, 
       }
     );
   });
-});
+}
+
+// combine css files and save css file to project-dist
+buildCss('styles');
