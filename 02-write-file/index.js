@@ -30,3 +30,7 @@ stdin.on(
     }
     readAndAddData('new-text-file.txt', data);
   });
+process.on('SIGINT', () => {
+  process.exit();
+});
+process.on('exit', () => stdout.write('Good bye!'));
