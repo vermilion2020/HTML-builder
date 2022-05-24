@@ -12,7 +12,7 @@ async function buildCss(folder) {
   }
   Promise.all(readFiles).then(data => {
     promises.writeFile(
-      path.join(__dirname, 'project-dist', 'style.css'),
+      path.join(__dirname, 'project-dist', 'bundle.css'),
       data.join('\n'),
       (err) => {
         if (err) {

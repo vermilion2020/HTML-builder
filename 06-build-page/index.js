@@ -1,10 +1,16 @@
 const promises = require('fs/promises');
+const fs = require('fs');
 const path = require('path');
 
 // create project-dist folder
 promises.mkdir(path.join(__dirname, 'project-dist'), {recursive: true});
 
 async function copyFiles(folder) {
+  await promises.access(path.join(__dirname, 'project-dist', folder), fs.constants.F_OK)
+    .then(async () => {
+      await promises.rm(path.join(__dirname,'project-dist', folder), { recursive: true });
+    }).catch(() => {
+    });
   const assetFolders = await promises.readdir(path.join(__dirname, folder));
   for (let i = 0; i < assetFolders.length; i++) {
     await promises.mkdir(path.join(__dirname, 'project-dist', folder, assetFolders[i]), {recursive: true});
